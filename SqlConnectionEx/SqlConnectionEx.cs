@@ -128,8 +128,8 @@ namespace SSO.SqlConnectionEx
 			}
 
 			return result;
-
-			#endregion
 		}
+
+		#endregion
 	}
 }
