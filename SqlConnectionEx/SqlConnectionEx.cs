@@ -14,7 +14,7 @@ namespace SSO.SqlConnectionEx
 		#region Private methods
 
 		/// <summary>Initializes a new instance of the <see cref="SqlCommand"/> to run a stored procedure using the <see cref="SqlConnection"/>.</summary>
-		/// <param name="connection">Open connection to the SQL server.</param>
+		/// <param name="connection">Connection to the SQL database.</param>
 		/// <param name="name">Name of stored procedure to execute.</param>
 		/// <param name="timeout">Time in seconds to wait for the stored proceduer to execute.</param>
 		/// <param name="arguments">Collection of the arguments of the stored procedure.</param>
@@ -44,7 +44,7 @@ namespace SSO.SqlConnectionEx
 		#region Methods
 
 		/// <summary>Initiates an asynchronous operation to execute the stored procedure which returns nothing.</summary>
-		/// <param name="connection">Open connection to the SQL server.</param>
+		/// <param name="connection">Connection to the SQL database.</param>
 		/// <param name="name">Name of stored procedure to execute.</param>
 		/// <param name="timeout">Time in seconds to wait for the stored proceduer to execute.</param>
 		/// <param name="arguments">Collection of the arguments of the stored procedure.</param>
@@ -62,7 +62,7 @@ namespace SSO.SqlConnectionEx
 
 		/// <summary>Initiates an asynchronous operation to execute the stored procedure which returns scalar value.</summary>
 		/// <typeparam name="T">The type of the object returned by the query.</typeparam>
-		/// <param name="connection">Open connection to the SQL server.</param>
+		/// <param name="connection">Connection to the SQL database.</param>
 		/// <param name="name">Name of stored procedure to execute.</param>
 		/// <param name="timeout">Time in seconds to wait for the stored proceduer to execute.</param>
 		/// <param name="arguments">Collection of the arguments of the stored procedure.</param>
@@ -83,8 +83,8 @@ namespace SSO.SqlConnectionEx
 			// execute command
 			using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
-			// read while there is something
-			while (await reader.ReadAsync(cancellationToken))
+			// read result
+			if (await reader.ReadAsync(cancellationToken))
 			{
 				// create an instance of type T
 				result = readResult(reader);
@@ -95,7 +95,7 @@ namespace SSO.SqlConnectionEx
 
 		/// <summary>Initiates an asynchronous operation to execute the command that returns set of records.</summary>
 		/// <typeparam name="T">Type of the objects returned by the stored procedure.</typeparam>
-		/// <param name="connection">Open connection to the SQL server.</param>
+		/// <param name="connection">Connection to the SQL database.</param>
 		/// <param name="name">Name of stored procedure to execute.</param>
 		/// <param name="timeout">Time in seconds to wait for the stored proceduer to execute.</param>
 		/// <param name="arguments">Collection of the arguments of the stored procedure.</param>
