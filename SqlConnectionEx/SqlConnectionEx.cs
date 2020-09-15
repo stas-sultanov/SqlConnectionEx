@@ -13,6 +13,68 @@ namespace SSO.SqlConnectionEx
 	{
 		#region Private methods
 
+		/// <summary>
+		/// Tracks MySQL Dependency into AppInsights.
+		/// </summary>
+		/// <typeparam name="TResult">Result of Func</typeparam>
+		/// <param name="commandText">Text of SQL command</param>
+		/// <param name="commandCall">A func that calls a SQL command.</param>
+		/// <returns></returns>
+		private async Task<TResult> TrackDependency<TResult>(Action<Task, SqlConnection, CancellationToken> commandCall)
+		{
+			var success = false;
+
+			var startTime = DateTime.UtcNow;
+
+			string resultCode = null;
+
+			// start a stop watch
+			var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
+			try
+			{
+				// open connection
+				await connection.OpenAsync(cancellationToken);
+
+				// call stored procedure
+				await commandCall(connection, cancellationToken);
+
+				// close connection
+				await connection.CloseAsync();
+
+				// stop the stop watch
+				stopwatch.Stop();
+
+				// set sucess
+				success = true;
+			}
+			catch (DbException ex)
+			{
+				// stop the stop watch
+				stopwatch.Stop();
+
+				// set success
+				success = false;
+
+				// set result code
+				resultCode = ex.ErrorCode.ToString();
+
+				throw;
+			}
+			finally
+			{
+				var telemetry = new DependencyTelemetry("MySQL", DependencyTarget, DependencyTarget, sql, startTime, timer.Elapsed, resultCode, success);
+
+				var sql = commandText.Substring(0, Math.Min(1000, commandText.Length));
+
+				TelemetryClient telemetry = null;
+
+				telemetry?.TrackDependency();
+			}
+
+			return resultCode;
+		}
+
 		/// <summary>Initializes a new instance of the <see cref="SqlCommand"/> to run a stored procedure using the <see cref="SqlConnection"/>.</summary>
 		/// <param name="connection">Connection to the SQL database.</param>
 		/// <param name="name">Name of stored procedure to execute.</param>
@@ -115,10 +177,10 @@ namespace SSO.SqlConnectionEx
 			using var command = connection.CreateStoredProcedureCommand(name, timeout, arguments);
 
 			// execute command
-			using var reader = await command.ExecuteReaderAsync();
+			using var reader = await command.ExecuteReaderAsync(cancellationToken);
 
 			// read while there is something
-			while (await reader.ReadAsync())
+			while (await reader.ReadAsync(cancellationToken))
 			{
 				// create an instance of type T
 				var record = readRecord(reader);

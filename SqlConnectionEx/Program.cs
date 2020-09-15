@@ -1,6 +1,9 @@
-﻿using Microsoft.Azure.Services.AppAuthentication;
+﻿using Microsoft.ApplicationInsights;
+using Microsoft.ApplicationInsights.DataContracts;
+using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Data.SqlClient;
 using System;
+using System.Data.Common;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -8,9 +11,11 @@ namespace SSO.SqlConnectionEx
 {
 	class Program
 	{
-		static async Task Main(CancellationToken cancellationToken)
+		static async Task Main()
 		{
-			var connection = await GetSqlConnectionAsync(cancellationToken);
+			var cancellationToken = CancellationToken.None;
+
+			using var connection = await GetSqlConnectionAsync(cancellationToken);
 
 			// open connection
 			await connection.OpenAsync(cancellationToken);
@@ -66,5 +71,7 @@ namespace SSO.SqlConnectionEx
 
 			return result;
 		}
+
+
 	}
 }
