@@ -1,7 +1,8 @@
-﻿using Microsoft.Data.SqlClient;
+﻿using Microsoft.ApplicationInsights.DataContracts;
 using System;
 using System.Collections.Generic;
 using System.Data;
+using System.Data.Common;
 using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
@@ -9,6 +10,11 @@ using System.Threading.Tasks;
 
 namespace SSO.SqlConnectionEx
 {
+	using SqlConnection = MySqlConnector.MySqlConnection;
+	using SqlCommand = MySqlConnector.MySqlCommand;
+	using SqlParameter = MySqlConnector.MySqlParameter;
+	using SqlDataReader = MySqlConnector.MySqlDataReader;
+
 	public static class SqlConnectionEx
 	{
 		#region Private methods
@@ -20,13 +26,13 @@ namespace SSO.SqlConnectionEx
 		/// <param name="commandText">Text of SQL command</param>
 		/// <param name="commandCall">A func that calls a SQL command.</param>
 		/// <returns></returns>
-		private async Task<TResult> TrackDependency<TResult>(Action<Task, SqlConnection, CancellationToken> commandCall)
+		private static async Task<TResult> TrackDependency<TResult>(Action<Task, SqlConnection, CancellationToken> commandCall)
 		{
 			var success = false;
 
-			var startTime = DateTime.UtcNow;
-
 			string resultCode = null;
+
+			var startTime = DateTime.UtcNow;
 
 			// start a stop watch
 			var stopwatch = System.Diagnostics.Stopwatch.StartNew();
@@ -85,14 +91,16 @@ namespace SSO.SqlConnectionEx
 		private static SqlCommand CreateStoredProcedureCommand(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments)
 		{
 			// create command
-			var result = new SqlCommand(name, connection)
-			{
-				// set command type
-				CommandType = CommandType.StoredProcedure,
+			var result = connection.CreateCommand();
 
-				// set stored procedure timeout
-				CommandTimeout = timeout,
-			};
+			// set command type
+			result.CommandType = CommandType.StoredProcedure;
+
+			// set stored procedure name to call
+			result.CommandText = name;
+
+			// set stored procedure timeout
+			result.CommandTimeout = timeout;
 
 			// add arguments
 			result.Parameters.AddRange(arguments);
@@ -113,7 +121,7 @@ namespace SSO.SqlConnectionEx
 		/// <param name="cancellationToken">The cancellation instruction.</param>
 		/// <returns>A <see cref="Task" /> object that represents the asynchronous operation.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task ExecuteStoredProcedureAsync(this SqlConnection connection, [NotNull] String name, Int32 timeout, [NotNull] SqlParameter[] arguments, CancellationToken cancellationToken)
+		public static async Task ExecuteStoredProcedureAsync(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments, CancellationToken cancellationToken)
 		{
 			// create stored procedure command
 			using var command = connection.CreateStoredProcedureCommand(name, timeout, arguments);
@@ -135,7 +143,7 @@ namespace SSO.SqlConnectionEx
 		/// <see cref="Task{T}.Result" /> contains the result of the operation.
 		/// </returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<T> ExecuteStoredProcedureWithScalarResultAsync<T>(this SqlConnection connection, [NotNull] String name, Int32 timeout, [NotNull] SqlParameter[] arguments, [NotNull] Func<SqlDataReader, T> readResult, CancellationToken cancellationToken)
+		public static async Task<T> ExecuteStoredProcedureWithScalarResultAsync<T>(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments, Func<SqlDataReader, T> readResult, CancellationToken cancellationToken)
 		{
 			var result = default(T);
 
@@ -168,7 +176,7 @@ namespace SSO.SqlConnectionEx
 		/// <see cref="Task{T}.Result" /> contains the result of the operation.
 		/// </returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task<List<T>> ExecuteStoredProcedureWithSetResultAsync<T>(this SqlConnection connection, [NotNull] String name, Int32 timeout, [NotNull] SqlParameter[] arguments, [NotNull] Func<SqlDataReader, T> readRecord, CancellationToken cancellationToken)
+		public static async Task<List<T>> ExecuteStoredProcedureWithSetResultAsync<T>(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments, Func<SqlDataReader, T> readRecord, CancellationToken cancellationToken)
 		{
 			// create result
 			var result = new List<T>();
