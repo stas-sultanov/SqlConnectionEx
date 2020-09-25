@@ -1,85 +1,25 @@
-﻿using Microsoft.ApplicationInsights.DataContracts;
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.Common;
-using System.Diagnostics.CodeAnalysis;
 using System.Runtime.CompilerServices;
 using System.Threading;
 using System.Threading.Tasks;
 
 namespace SSO.SqlConnectionEx
 {
-	using SqlConnection = MySqlConnector.MySqlConnection;
-	using SqlCommand = MySqlConnector.MySqlCommand;
-	using SqlParameter = MySqlConnector.MySqlParameter;
-	using SqlDataReader = MySqlConnector.MySqlDataReader;
+	//using SqlConnection = MySqlConnector.MySqlConnection;
+	//using SqlCommand = MySqlConnector.MySqlCommand;
+	//using SqlParameter = MySqlConnector.MySqlParameter;
+	//using SqlDataReader = MySqlConnector.MySqlDataReader;
+
+	using SqlConnection = System.Data.Common.DbConnection;
+	using SqlCommand = System.Data.Common.DbCommand;
+	using SqlParameter = System.Data.Common.DbParameter;
+	using SqlDataReader = System.Data.Common.DbDataReader;
 
 	public static class SqlConnectionEx
 	{
 		#region Private methods
-
-		/// <summary>
-		/// Tracks MySQL Dependency into AppInsights.
-		/// </summary>
-		/// <typeparam name="TResult">Result of Func</typeparam>
-		/// <param name="commandText">Text of SQL command</param>
-		/// <param name="commandCall">A func that calls a SQL command.</param>
-		/// <returns></returns>
-		private static async Task<TResult> TrackDependency<TResult>(Action<Task, SqlConnection, CancellationToken> commandCall)
-		{
-			var success = false;
-
-			string resultCode = null;
-
-			var startTime = DateTime.UtcNow;
-
-			// start a stop watch
-			var stopwatch = System.Diagnostics.Stopwatch.StartNew();
-
-			try
-			{
-				// open connection
-				await connection.OpenAsync(cancellationToken);
-
-				// call stored procedure
-				await commandCall(connection, cancellationToken);
-
-				// close connection
-				await connection.CloseAsync();
-
-				// stop the stop watch
-				stopwatch.Stop();
-
-				// set sucess
-				success = true;
-			}
-			catch (DbException ex)
-			{
-				// stop the stop watch
-				stopwatch.Stop();
-
-				// set success
-				success = false;
-
-				// set result code
-				resultCode = ex.ErrorCode.ToString();
-
-				throw;
-			}
-			finally
-			{
-				var telemetry = new DependencyTelemetry("MySQL", DependencyTarget, DependencyTarget, sql, startTime, timer.Elapsed, resultCode, success);
-
-				var sql = commandText.Substring(0, Math.Min(1000, commandText.Length));
-
-				TelemetryClient telemetry = null;
-
-				telemetry?.TrackDependency();
-			}
-
-			return resultCode;
-		}
 
 		/// <summary>Initializes a new instance of the <see cref="SqlCommand"/> to run a stored procedure using the <see cref="SqlConnection"/>.</summary>
 		/// <param name="connection">Connection to the SQL database.</param>
@@ -121,7 +61,7 @@ namespace SSO.SqlConnectionEx
 		/// <param name="cancellationToken">The cancellation instruction.</param>
 		/// <returns>A <see cref="Task" /> object that represents the asynchronous operation.</returns>
 		[MethodImpl(MethodImplOptions.AggressiveInlining)]
-		public static async Task ExecuteStoredProcedureAsync(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments, CancellationToken cancellationToken)
+		public static async Task ExecuteStoredProcedureWithNoResultAsync(this SqlConnection connection, String name, Int32 timeout, SqlParameter[] arguments, CancellationToken cancellationToken)
 		{
 			// create stored procedure command
 			using var command = connection.CreateStoredProcedureCommand(name, timeout, arguments);
