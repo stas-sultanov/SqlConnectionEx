@@ -1,11 +1,7 @@
-﻿using Microsoft.ApplicationInsights;
-using Microsoft.ApplicationInsights.DataContracts;
-using Microsoft.Azure.Services.AppAuthentication;
-using Microsoft.Data.SqlClient;
-using System;
-using System.Data.Common;
+﻿using System;
 using System.Threading;
 using System.Threading.Tasks;
+using SqlConnectionEx;
 
 namespace SSO.SqlConnectionEx
 {
@@ -13,65 +9,33 @@ namespace SSO.SqlConnectionEx
 	{
 		static async Task Main()
 		{
-			var cancellationToken = CancellationToken.None;
+			var x = new TestInfrastructure(null, null);
 
-			using var connection = await GetSqlConnectionAsync(cancellationToken);
-
-			// open connection
-			await connection.OpenAsync(cancellationToken);
-
-			// call sample procedure
-			await TestStoredProcedure(connection, cancellationToken);
-
-			// close connection
-			await connection.CloseAsync();
+			await x.TestMethodAsync(CancellationToken.None);
 		}
 
-		private static async Task TestStoredProcedure(SqlConnection connection, CancellationToken cancellationToken)
-		{
-			// TODO: pay attention at local function
-			static Tuple<int, float> read (SqlDataReader reader)
-			{
-				return Tuple.Create(reader.GetInt32(0), reader.GetFloat(1) );
-			}
+		//private static async Task<SqlConnection> GetSqlConnectionAsync(CancellationToken cancellationToken)
+		//{
+		//	// get active directory tennant id
+		//	var activeDirectoryTenantId = Environment.GetEnvironmentVariable(@"ActiveDirectory:TenantId");
 
-			// execute stored procedure
-			// create account
-			var @params = new[]
-			{
-				new SqlParameter("@param1", 1),
-				new SqlParameter("@param2", 2)
-			};
+		//	// create token provider
+		//	var azureServiceTokenProvider = new AzureServiceTokenProvider();
 
-			var result = await connection.ExecuteStoredProcedureWithSetResultAsync("[Scheme].[SPName]", 10, @params, read, cancellationToken);
+		//	// get connection string
+		//	var sqlDatabaseConnectionString = Environment.GetEnvironmentVariable(@"Database:ConnectionString");
 
-			// TODO: do something with result
-		}
+		//	// get access token
+		//	var sqlDatabaseAccessToken = await azureServiceTokenProvider.GetAccessTokenAsync(@"https://database.windows.net/", activeDirectoryTenantId, cancellationToken);
 
-		private static async Task<SqlConnection> GetSqlConnectionAsync(CancellationToken cancellationToken)
-		{
-			// get active directory tennant id
-			var activeDirectoryTenantId = Environment.GetEnvironmentVariable(@"ActiveDirectory:TenantId");
+		//	// create new connection
+		//	var result = new SqlConnection(sqlDatabaseConnectionString)
+		//	{
+		//		// set access token
+		//		AccessToken = sqlDatabaseAccessToken
+		//	};
 
-			// create token provider
-			var azureServiceTokenProvider = new AzureServiceTokenProvider();
-
-			// get connection string
-			var sqlDatabaseConnectionString = Environment.GetEnvironmentVariable(@"Database:ConnectionString");
-
-			// get access token
-			var sqlDatabaseAccessToken = await azureServiceTokenProvider.GetAccessTokenAsync(@"https://database.windows.net/", activeDirectoryTenantId, cancellationToken);
-
-			// create new connection
-			var result = new SqlConnection(sqlDatabaseConnectionString)
-			{
-				// set access token
-				AccessToken = sqlDatabaseAccessToken
-			};
-
-			return result;
-		}
-
-
+		//	return result;
+		//}
 	}
 }
